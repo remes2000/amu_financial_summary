@@ -17,7 +17,7 @@ type Regexp struct {
 
 func (r Regexp) GetUpdateMap() map[string]interface{} {
 	return map[string]interface{}{
-		"content": r.Content,
+		"Content": r.Content,
 	}
 }
 
@@ -64,6 +64,8 @@ func DeleteRegexp(regexpToDelete *Regexp) error {
 	}
 	return nil
 }
+
+// ---=== REST ===---
 
 func BindRoutes(rest *gin.Engine) {
 	controllerName := "regexp"

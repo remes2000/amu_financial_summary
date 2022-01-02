@@ -1,6 +1,7 @@
 package setup
 
 import (
+	"github.com/remes2000/amu_financial_summary/category"
 	"github.com/remes2000/amu_financial_summary/global"
 	"github.com/remes2000/amu_financial_summary/regexp"
 	"gorm.io/driver/postgres"
@@ -19,4 +20,5 @@ func EstablishConnection() {
 
 func Migrate() {
 	global.Database.AutoMigrate(&regexp.Regexp{})
+	global.Database.AutoMigrate(&category.Category{})
 }

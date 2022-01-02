@@ -1,18 +1,14 @@
 package main
 
 import (
-	"github.com/gin-gonic/gin"
-	"github.com/remes2000/amu_financial_summary/regexp"
-	"github.com/remes2000/amu_financial_summary/setup"
+	"github.com/joho/godotenv"
+	"github.com/remes2000/amu_financial_summary/app"
 )
 
 func main() {
-	rest := gin.Default()
-	setup.EstablishConnection()
-	BindAllRoutes(rest)
-	rest.Run()
-}
-
-func BindAllRoutes(rest *gin.Engine) {
-	regexp.BindRoutes(rest)
+	if err := godotenv.Load(); err != nil {
+		panic("Error loading .env file")
+	}
+	app.Initialize()
+	app.Run()
 }
