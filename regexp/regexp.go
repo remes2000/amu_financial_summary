@@ -29,6 +29,13 @@ func (c CreateRegexp) GetRegexp() Regexp {
 	return Regexp{Content: c.Content}
 }
 
+func GetAllRegexp(regexp *[]Regexp) error {
+	if err := global.Database.Find(regexp).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
 func GetRegexpById(regexp *Regexp, id uint) error {
 	if err := global.Database.Where("id = ?", id).First(regexp).Error; err != nil {
 		return err
@@ -64,6 +71,7 @@ func BindRoutes(rest *gin.Engine) {
 	rest.PUT(controllerName, update)
 	rest.DELETE(controllerName+"/:id", delete)
 	rest.GET(controllerName+"/:id", getOne)
+	rest.GET(controllerName, getAll)
 }
 
 func create(context *gin.Context) {
@@ -143,4 +151,14 @@ func getOne(context *gin.Context) {
 		return
 	}
 	context.JSON(http.StatusOK, requestedRegexp)
+}
+
+func getAll(context *gin.Context) {
+	var result []Regexp
+	if err := GetAllRegexp(&result); err != nil {
+		log.Print(err)
+		context.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	context.JSON(http.StatusOK, result)
 }
