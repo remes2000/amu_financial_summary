@@ -3,6 +3,7 @@ package regexp
 import (
 	"errors"
 	"github.com/gin-gonic/gin"
+	"github.com/remes2000/amu_financial_summary/common"
 	"github.com/remes2000/amu_financial_summary/global"
 	"gorm.io/gorm"
 	"log"
@@ -28,38 +29,63 @@ func (c CreateRegexp) GetRegexp() Regexp {
 	return Regexp{Content: c.Content}
 }
 
-type UpdateRegexp struct {
-	Content string
+func GetRegexpById(regexp *Regexp, id uint) error {
+	if err := global.Database.Where("id = ?", id).First(regexp).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func UpdateRegexp(regexpToUpdate *Regexp, updateRegexp *Regexp) error {
+	if err := global.Database.Model(regexpToUpdate).Updates(updateRegexp.GetUpdateMap()).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func AddNewRegexp(request CreateRegexp) error {
+	newRegexp := request.GetRegexp()
+	if err := global.Database.Create(&newRegexp).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func DeleteRegexp(regexpToDelete *Regexp) error {
+	if err := global.Database.Delete(regexpToDelete).Error; err != nil {
+		return err
+	}
+	return nil
 }
 
 func BindRoutes(rest *gin.Engine) {
 	controllerName := "regexp"
-	rest.POST(controllerName, Create)
-	rest.PUT(controllerName, Update)
-	rest.DELETE(controllerName+"/:id", Delete)
+	rest.POST(controllerName, create)
+	rest.PUT(controllerName, update)
+	rest.DELETE(controllerName+"/:id", delete)
+	rest.GET(controllerName+"/:id", getOne)
 }
 
-func Create(context *gin.Context) {
+func create(context *gin.Context) {
 	var createRegexpRequest CreateRegexp
 	if err := context.BindJSON(&createRegexpRequest); err != nil {
 		return
 	}
-	newRegexp := createRegexpRequest.GetRegexp()
-	if err := global.Database.Create(&newRegexp).Error; err != nil {
+	if err := AddNewRegexp(createRegexpRequest); err != nil {
 		log.Print(err)
 		context.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
-	context.JSON(http.StatusOK, newRegexp)
+	context.JSON(http.StatusOK, createRegexpRequest)
 }
 
-func Update(context *gin.Context) {
+func update(context *gin.Context) {
+	var updateRegexp Regexp
 	var regexpToUpdate Regexp
-	if err := context.BindJSON(&regexpToUpdate); err != nil {
+	if err := context.BindJSON(&updateRegexp); err != nil {
 		return
 	}
-	updateMap := regexpToUpdate.GetUpdateMap()
-	if err := global.Database.Where("id = ?", regexpToUpdate.Id).First(&regexpToUpdate).Error; err != nil {
+	if err := GetRegexpById(&regexpToUpdate, updateRegexp.Id); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			context.JSON(http.StatusNotFound, gin.H{"message": "Entity with provided id not found"})
 			return
@@ -68,20 +94,53 @@ func Update(context *gin.Context) {
 		context.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
-	global.Database.Model(&regexpToUpdate).Updates(updateMap)
+	if err := UpdateRegexp(&regexpToUpdate, &updateRegexp); err != nil {
+		log.Print(err)
+		context.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
 	context.JSON(http.StatusOK, regexpToUpdate)
 }
 
-func Delete(context *gin.Context) {
-	// todo handle if not exist throw 404
-	if err := global.Database.Where("id = ?", context.Param("id")).Delete(&Regexp{}).Error; err != nil {
+func delete(context *gin.Context) {
+	var regexpToDelete Regexp
+	var idUri common.IdUri
+
+	if err := context.ShouldBindUri(&idUri); err != nil {
+		context.Status(http.StatusBadRequest)
+	}
+	if err := GetRegexpById(&regexpToDelete, idUri.Id); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			context.JSON(http.StatusNotFound, gin.H{"message": "Entity with provided id not found"})
 			return
 		}
+		log.Print(err)
+		context.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	if err := DeleteRegexp(&regexpToDelete); err != nil {
 		log.Print(err)
 		context.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 	context.Status(http.StatusOK)
+}
+
+func getOne(context *gin.Context) {
+	var requestedRegexp Regexp
+	var idUri common.IdUri
+
+	if err := context.ShouldBindUri(&idUri); err != nil {
+		context.Status(http.StatusBadRequest)
+	}
+	if err := GetRegexpById(&requestedRegexp, idUri.Id); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			context.JSON(http.StatusNotFound, gin.H{"message": "Entity with provided id not found"})
+			return
+		}
+		log.Print(err)
+		context.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	context.JSON(http.StatusOK, requestedRegexp)
 }
