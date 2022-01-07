@@ -11,8 +11,10 @@ import (
 )
 
 type Regexp struct {
-	Id      uint   `json:"id" binding:"required" gorm:"primaryKey"`
-	Content string `json:"content" binding:"required" gorm:"notNull"`
+	gorm.Model
+	Id         uint   `json:"id" binding:"required" gorm:"primaryKey"`
+	Content    string `json:"content" binding:"required" gorm:"notNull"`
+	CategoryID uint   `gorm:"notNull""`
 }
 
 func (r Regexp) GetUpdateMap() map[string]interface{} {

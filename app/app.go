@@ -36,8 +36,8 @@ func establishDatabaseConnection() *gorm.DB {
 }
 
 func migrateDatabase(db *gorm.DB) {
-	db.AutoMigrate(&regexp.Regexp{})
 	db.AutoMigrate(&category.Category{})
+	db.AutoMigrate(&regexp.Regexp{})
 }
 
 func initRestApi() *gin.Engine {
