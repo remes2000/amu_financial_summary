@@ -13,36 +13,53 @@ import (
 )
 
 type Category struct {
-	gorm.Model
 	Id      uint            `json:"id" binding:"required" gorm:"primaryKey"`
 	Name    string          `json:"name" binding:"required" gorm:"notNull"`
-	Regexps []regexp.Regexp `json:"regexps"`
-}
-
-func (c Category) GetUpdateMap() map[string]interface{} {
-	return map[string]interface{}{
-		"Name": c.Name,
-	}
+	Regexps []regexp.Regexp `json:"regexps" binding:"required,dive" gorm:"constraint:OnDelete:CASCADE;"`
 }
 
 type CreateCategory struct {
 	Name    string                `json:"name" binding:"required"`
-	Regexps []regexp.CreateRegexp `json:"regexps"`
+	Regexps []regexp.CreateRegexp `json:"regexps" binding:"required,dive"`
 }
 
 func (c CreateCategory) GetCategory() Category {
-	return Category{Name: c.Name}
+	var regexps []regexp.Regexp
+	for _, regexp := range c.Regexps {
+		regexps = append(regexps, regexp.GetRegexp())
+	}
+	return Category{Name: c.Name, Regexps: regexps}
 }
 
 func GetAllCategories(categories *[]Category) error {
-	if err := global.Database.Find(categories).Error; err != nil {
+	if err := global.Database.Preload("Regexps").Find(categories).Error; err != nil {
 		return err
 	}
 	return nil
 }
 
 func GetCategoryById(category *Category, id uint) error {
-	if err := global.Database.Where("id = ?", id).First(category).Error; err != nil {
+	if err := global.Database.Preload("Regexps").Where("id = ?", id).First(category).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func AddNewCategory(category *Category) error {
+	if err := global.Database.Create(category).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func UpdateCategory(categoryToUpdate *Category, updateCategory *Category) error {
+	if err := global.Database.Session(&gorm.Session{FullSaveAssociations: true}).Save(updateCategory).Error; err != nil {
+		return err
+	}
+	if err := global.Database.Model(categoryToUpdate).Association("Regexps").Replace(updateCategory.Regexps); err != nil {
+		return err
+	}
+	if err := global.Database.Unscoped().Where("category_id is null").Delete(regexp.Regexp{}).Error; err != nil {
 		return err
 	}
 	return nil
@@ -55,6 +72,7 @@ func BindRoutes(rest *gin.Engine) {
 	rest.GET(controllerName, getAll)
 	rest.GET(controllerName+"/:id", getOne)
 	rest.POST(controllerName, create)
+	rest.PUT(controllerName, update)
 }
 
 func getAll(context *gin.Context) {
@@ -92,11 +110,34 @@ func create(context *gin.Context) {
 	if err := context.BindJSON(&createCategoryRequest); err != nil {
 		return
 	}
-	context.Status(404)
-	//if err := AddNewRegexp(createRegexpRequest); err != nil {
-	//	log.Print(err)
-	//	context.AbortWithStatus(http.StatusInternalServerError)
-	//	return
-	//}
-	//context.JSON(http.StatusOK, createRegexpRequest)
+	categoryToCreate := createCategoryRequest.GetCategory()
+	if err := AddNewCategory(&categoryToCreate); err != nil {
+		log.Print(err)
+		context.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	context.JSON(http.StatusOK, categoryToCreate)
+}
+
+func update(context *gin.Context) {
+	var categoryToUpdate Category
+	var updateCategory Category
+	if err := context.BindJSON(&updateCategory); err != nil {
+		return
+	}
+	if err := GetCategoryById(&categoryToUpdate, updateCategory.Id); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			context.JSON(http.StatusNotFound, gin.H{"message": "Entity with provided id not found"})
+			return
+		}
+		log.Print(err)
+		context.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	if err := UpdateCategory(&categoryToUpdate, &updateCategory); err != nil {
+		log.Print(err)
+		context.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	context.JSON(http.StatusOK, updateCategory)
 }

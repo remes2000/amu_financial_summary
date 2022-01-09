@@ -48,6 +48,5 @@ func initRestApi() *gin.Engine {
 }
 
 func bindAllRoutes(rest *gin.Engine) {
-	regexp.BindRoutes(rest)
 	category.BindRoutes(rest)
 }

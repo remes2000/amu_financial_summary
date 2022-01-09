@@ -21,8 +21,8 @@ func TestMain(m *testing.M) {
 }
 
 func clearDatabase() {
-	global.Database.Exec("DELETE FROM regexps")
-	global.Database.Exec("DELETE FROM categories")
+	global.Database.Exec("TRUNCATE TABLE regexps RESTART IDENTITY CASCADE")
+	global.Database.Exec("TRUNCATE TABLE categories RESTART IDENTITY CASCADE")
 }
 
 func executeRequest(req *http.Request, body interface{}) *httptest.ResponseRecorder {
@@ -32,10 +32,4 @@ func executeRequest(req *http.Request, body interface{}) *httptest.ResponseRecor
 		json.Unmarshal(responseRecorder.Body.Bytes(), body)
 	}
 	return responseRecorder
-}
-
-func assertResponseCode(t *testing.T, expected, actual int) {
-	if expected != actual {
-		t.Errorf("Expected response code %d. Got %d\n", expected, actual)
-	}
 }
