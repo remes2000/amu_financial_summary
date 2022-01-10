@@ -250,11 +250,12 @@ var updateCategoryTestCases = []updateCategoryTest{
 	{`{ "id": 100, "name": "CategoryName", "regexps": [{"content": "^abc$"}] }`, http.StatusNotFound, "Not found when entity does not exist"},
 	{`{ "id": 1, "name": "First category", "regexps": [{"content": "^abc$"}] }`, http.StatusOK, "Ok when change category name"},
 	{`{ "id": 1, "name": "CategoryName", "regexps": [{"id": 1, "content": "First regexp"}, {"id": 2, "content": "Second regexp"}] }`, http.StatusOK, "Ok when replacing regexps"},
-	//{`{ "id": 1, "name": "CategoryName", "regexps": [{"id": 1, "content": "First regexp"}, {"id": 2, "content": "Second regexp"}, {"content": "Third regexp"}] }`, http.StatusOK, "Ok when inserting new regexp"},
-	//{`{ "id": 1, "name": "CategoryName", "regexps": [] }`, http.StatusOK, "Ok when deleting regexps"},
+	{`{ "id": 1, "name": "CategoryName", "regexps": [{"id": 1, "content": "First regexp"}, {"id": 2, "content": "Second regexp"}, {"content": "Third regexp"}] }`, http.StatusOK, "Ok when inserting new regexp"},
+	{`{ "id": 1, "name": "CategoryName", "regexps": [] }`, http.StatusOK, "Ok when deleting regexps"},
 }
 
 func Test_givenUpdateCategoryRequest_whenUpdateCategory_thenReturnExpectedStatusAndUpdateCategory(t *testing.T) {
+
 	for _, testCase := range updateCategoryTestCases {
 		prepareDatabaseToCategoryTest()
 
@@ -331,7 +332,7 @@ func assertDbStateAfterUpdate(t *testing.T, testCase updateCategoryTest, apiResp
 	global.Database.Find(&regexpsInDb)
 
 	if len(categoriesInDb) != len(getCategories()) {
-		t.Errorf("[%s] Expected 1 categories in database but found %d", testCase.TestCaseName, len(categoriesInDb))
+		t.Errorf("[%s] Expected %d categories in database but found %d", testCase.TestCaseName, len(getCategories()), len(categoriesInDb))
 		return false
 	}
 

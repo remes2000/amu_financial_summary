@@ -21,8 +21,8 @@ func TestMain(m *testing.M) {
 }
 
 func clearDatabase() {
-	global.Database.Exec("TRUNCATE TABLE regexps RESTART IDENTITY CASCADE")
-	global.Database.Exec("TRUNCATE TABLE categories RESTART IDENTITY CASCADE")
+	global.Database.Exec("DELETE FROM regexps")
+	global.Database.Exec("DELETE FROM categories")
 }
 
 func executeRequest(req *http.Request, body interface{}) *httptest.ResponseRecorder {

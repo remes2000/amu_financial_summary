@@ -53,16 +53,19 @@ func AddNewCategory(category *Category) error {
 }
 
 func UpdateCategory(categoryToUpdate *Category, updateCategory *Category) error {
-	if err := global.Database.Session(&gorm.Session{FullSaveAssociations: true}).Save(updateCategory).Error; err != nil {
-		return err
-	}
-	if err := global.Database.Model(categoryToUpdate).Association("Regexps").Replace(updateCategory.Regexps); err != nil {
-		return err
-	}
-	if err := global.Database.Unscoped().Where("category_id is null").Delete(regexp.Regexp{}).Error; err != nil {
-		return err
-	}
-	return nil
+	return global.Database.Transaction(func(tx *gorm.DB) error {
+		if err := global.Database.Model(categoryToUpdate).Association("Regexps").Replace(updateCategory.Regexps); err != nil {
+			return err
+		}
+		if err := global.Database.Session(&gorm.Session{FullSaveAssociations: true}).Save(updateCategory).Error; err != nil {
+			return err
+		}
+		// Delete orphans
+		if err := global.Database.Where("category_id is null").Delete(&regexp.Regexp{}).Error; err != nil {
+			return err
+		}
+		return nil
+	})
 }
 
 // ---=== REST ===---
