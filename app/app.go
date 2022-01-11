@@ -9,6 +9,7 @@ import (
 	"github.com/remes2000/amu_financial_summary/category"
 	"github.com/remes2000/amu_financial_summary/global"
 	"github.com/remes2000/amu_financial_summary/regexp"
+	"github.com/remes2000/amu_financial_summary/report"
 	"github.com/remes2000/amu_financial_summary/validators"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -62,4 +63,5 @@ func registerValidators() {
 func bindAllRoutes(rest *gin.Engine) {
 	category.BindRoutes(rest)
 	account_transaction.BindRoutes(rest)
+	report.BindRoutes(rest)
 }

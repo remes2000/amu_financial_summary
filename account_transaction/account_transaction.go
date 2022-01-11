@@ -123,6 +123,13 @@ func ForceSetCategory(transaction *AccountTransaction, category *category.Catego
 	return nil
 }
 
+func GetAccountTransactionsByYearAndMonth(year uint, month uint, transactions *[]AccountTransaction) error {
+	if err := global.Database.Where("extract(year from date) = ? and extract(month from date) = ?", year, month).Preload("Category").Find(transactions).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
 // ---=== REST ===---
 
 func BindRoutes(rest *gin.Engine) {
