@@ -18,6 +18,15 @@ type Category struct {
 	Regexps []regexp.Regexp `json:"regexps" binding:"required,dive" gorm:"constraint:OnDelete:CASCADE;"`
 }
 
+func (c Category) Matches(title string) bool {
+	for _, regexp := range c.Regexps {
+		if regexp.Matches(title) {
+			return true
+		}
+	}
+	return false
+}
+
 type CreateCategory struct {
 	Name    string                `json:"name" binding:"required"`
 	Regexps []regexp.CreateRegexp `json:"regexps" binding:"required,dive"`

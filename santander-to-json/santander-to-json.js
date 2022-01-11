@@ -37,7 +37,7 @@ function printJsonEntry(values) {
     const object = {
         date: values[1],
         title: `${values[2]} ${values[3]} ${values[4]}`,
-        amount: values[5]
+        amount: +values[5].replace(/,/g, '.')
     };
     fs.appendFileSync(outputFile, '\t' + (insertSeparator?',':'') + JSON.stringify(object) + '\n' );
     insertSeparator = true;
