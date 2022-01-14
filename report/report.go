@@ -4,22 +4,25 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/remes2000/amu_financial_summary/account_transaction"
 	"github.com/remes2000/amu_financial_summary/category"
+	"github.com/remes2000/amu_financial_summary/currency"
 	"log"
 	"net/http"
+	"sort"
 )
 
 type Report struct {
 	Year         uint     `json:"year"`
 	Month        uint     `json:"month"`
-	TotalIncome  float32  `json:"totalIncome"`
-	TotalOutcome float32  `json:"totalOutcome"`
-	Total        float32  `json:"total"`
+	TotalIncome  string   `json:"totalIncome"`
+	TotalOutcome string   `json:"totalOutcome"`
+	Total        string   `json:"total"`
 	Details      []Detail `json:"details"`
 }
 
 type Detail struct {
-	Amount   float32           `json:"amount"`
-	Category category.Category `json:"category"`
+	CategoryName   string `json:"category"`
+	Amount         string `json:"amount"`
+	AmountAsNumber int    `json:"-"`
 }
 
 type GenerateReportUri struct {
@@ -32,19 +35,20 @@ func GenerateReport(year uint, month uint) (Report, error) {
 	report.Year = year
 	report.Month = month
 	categoryMap := make(map[uint]*category.Category)
-	detailsMap := make(map[uint]float32)
-	var withoutCategorySum float32
+	detailsMap := make(map[uint]int)
+	var withoutCategorySum int
+	var total, totalOutcome, totalIncome int
 	var transactions []account_transaction.AccountTransaction
 	if err := account_transaction.GetAccountTransactionsByYearAndMonth(year, month, &transactions); err != nil {
 		return report, err
 	}
 	for _, transaction := range transactions {
-		amount := float32(transaction.Amount) / 100
-		report.Total += amount
+		amount := transaction.Amount
+		total += amount
 		if amount < 0 {
-			report.TotalOutcome += amount
+			totalOutcome += amount
 		} else if amount > 0 {
-			report.TotalIncome += amount
+			totalIncome += amount
 		}
 		if transaction.Category != nil {
 			categoryMap[*transaction.CategoryId] = transaction.Category
@@ -54,9 +58,23 @@ func GenerateReport(year uint, month uint) (Report, error) {
 		}
 	}
 	for categoryId, sum := range detailsMap {
-		report.Details = append(report.Details, Detail{Amount: sum, Category: *categoryMap[categoryId]})
+		report.Details = append(report.Details, Detail{Amount: currency.FormatAsCurrency(sum), AmountAsNumber: sum, CategoryName: (*categoryMap[categoryId]).Name})
 	}
-	report.Details = append(report.Details, Detail{Amount: withoutCategorySum, Category: category.Category{Name: "No category"}})
+	report.Details = append(report.Details, Detail{Amount: currency.FormatAsCurrency(withoutCategorySum), AmountAsNumber: withoutCategorySum, CategoryName: "No category"})
+	sort.Slice(report.Details, func(i, j int) bool {
+		amount1 := report.Details[i].AmountAsNumber
+		if amount1 < 0 {
+			amount1 *= -1
+		}
+		amount2 := report.Details[j].AmountAsNumber
+		if amount2 < 0 {
+			amount2 *= -1
+		}
+		return amount1 > amount2
+	})
+	report.Total = currency.FormatAsCurrency(total)
+	report.TotalIncome = currency.FormatAsCurrency(totalIncome)
+	report.TotalOutcome = currency.FormatAsCurrency(totalOutcome)
 	return report, nil
 }
 

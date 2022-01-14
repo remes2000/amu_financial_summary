@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
 	"github.com/remes2000/amu_financial_summary/account_transaction"
+	"github.com/remes2000/amu_financial_summary/backup"
 	"github.com/remes2000/amu_financial_summary/category"
 	"github.com/remes2000/amu_financial_summary/global"
 	"github.com/remes2000/amu_financial_summary/regexp"
@@ -57,6 +58,7 @@ func initRestApi() *gin.Engine {
 func registerValidators() {
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
 		v.RegisterValidation("validdate", validators.ValidDate)
+		v.RegisterValidation("currency", validators.Currency)
 	}
 }
 
@@ -64,4 +66,5 @@ func bindAllRoutes(rest *gin.Engine) {
 	category.BindRoutes(rest)
 	account_transaction.BindRoutes(rest)
 	report.BindRoutes(rest)
+	backup.BindRoutes(rest)
 }

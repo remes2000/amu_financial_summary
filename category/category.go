@@ -27,6 +27,20 @@ func (c Category) Matches(title string) bool {
 	return false
 }
 
+type CategoryBackup struct {
+	Id   uint   `json:"id" binding:"required"`
+	Name string `json:"name" binding:"required"`
+}
+
+func (cb CategoryBackup) ToCategory() Category {
+	return Category{Id: cb.Id, Name: cb.Name}
+}
+
+func (cb *CategoryBackup) FromCategory(category Category) {
+	cb.Id = category.Id
+	cb.Name = category.Name
+}
+
 type CreateCategory struct {
 	Name    string                `json:"name" binding:"required"`
 	Regexps []regexp.CreateRegexp `json:"regexps" binding:"required,dive"`

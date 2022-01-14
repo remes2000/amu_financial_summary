@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/remes2000/amu_financial_summary/category"
 	"github.com/remes2000/amu_financial_summary/common"
+	"github.com/remes2000/amu_financial_summary/currency"
 	"github.com/remes2000/amu_financial_summary/global"
 	"github.com/remes2000/amu_financial_summary/validators"
 	"gorm.io/gorm"
@@ -35,10 +36,6 @@ func (t *AccountTransaction) SetDate(date string) {
 	t.Date = time
 }
 
-func (t *AccountTransaction) SetAmount(amount float64) {
-	t.Amount = int(amount * 100)
-}
-
 func (t *AccountTransaction) SetCategory(categories []category.Category) {
 	for _, category := range categories {
 		if category.Matches(t.Title) {
@@ -51,16 +48,43 @@ func (t *AccountTransaction) SetCategory(categories []category.Category) {
 	t.CategoryId = nil
 }
 
+type AccountTransactionBackup struct {
+	Id         uint   `json:"id" binding:"required"`
+	Title      string `json:"title" binding:"required"`
+	Date       string `json:"date,validdate" binding:"required"`
+	Amount     int    `json:"amount" binding:"required"`
+	CategoryId *uint  `json:"categoryId"`
+}
+
+func (tb AccountTransactionBackup) ToAccountTransaction() AccountTransaction {
+	time, _ := time.Parse(validators.ValidDateLayout, tb.Date)
+	return AccountTransaction{
+		Id:         tb.Id,
+		Title:      tb.Title,
+		Date:       time,
+		Amount:     tb.Amount,
+		CategoryId: tb.CategoryId,
+	}
+}
+
+func (tb *AccountTransactionBackup) FromAccountTransaction(transaction AccountTransaction) {
+	tb.Id = transaction.Id
+	tb.Title = transaction.Title
+	tb.Date = transaction.Date.Format(validators.ValidDateLayout)
+	tb.Amount = transaction.Amount
+	tb.CategoryId = transaction.CategoryId
+}
+
 type AccountTransactionRequest struct {
-	Date   string  `json:"date" binding:"required,validdate"`
-	Title  string  `json:"title" binding:"required"`
-	Amount float64 `json:"amount" binding:"required"`
+	Date   string `json:"date" binding:"required,validdate"`
+	Title  string `json:"title" binding:"required"`
+	Amount string `json:"amount" binding:"required,currency"`
 }
 
 func (r AccountTransactionRequest) GetAccountTransaction(categories []category.Category) AccountTransaction {
 	var transaction AccountTransaction
 	transaction.Title = r.Title
-	transaction.SetAmount(r.Amount)
+	transaction.Amount = currency.CurrencyToInteger(r.Amount)
 	transaction.SetDate(r.Date)
 	transaction.SetCategory(categories)
 	return transaction
