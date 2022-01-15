@@ -1,7 +1,6 @@
 package backup
 
 import (
-	"errors"
 	"github.com/gin-gonic/gin"
 	"github.com/remes2000/amu_financial_summary/account_transaction"
 	"github.com/remes2000/amu_financial_summary/category"
@@ -116,11 +115,7 @@ func importData(context *gin.Context) {
 	importResult, err := ImportData(&backup)
 	if err != nil {
 		log.Print(err)
-		if errors.Is(err, gorm.ErrInvalidTransaction) {
-			context.JSON(http.StatusBadRequest, gin.H{"message": "Data import failed"})
-			return
-		}
-		context.AbortWithStatus(http.StatusInternalServerError)
+		context.JSON(http.StatusBadRequest, gin.H{"message": "Data import failed"})
 		return
 	}
 	context.JSON(http.StatusOK, importResult)
