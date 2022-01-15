@@ -23,6 +23,7 @@ func TestMain(m *testing.M) {
 func clearDatabase() {
 	global.Database.Exec("DELETE FROM regexps")
 	global.Database.Exec("DELETE FROM categories")
+	global.Database.Exec("DELETE FROM account_transactions")
 }
 
 func executeRequest(req *http.Request, body interface{}) *httptest.ResponseRecorder {
