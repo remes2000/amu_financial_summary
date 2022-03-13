@@ -91,7 +91,7 @@ func ImportData(backup *Backup) (Summary, error) {
 
 // ---=== REST ===---
 
-func BindRoutes(rest *gin.Engine) {
+func BindRoutes(rest *gin.RouterGroup) {
 	controllerName := "backup"
 	rest.GET(controllerName+"/export", exportData)
 	rest.POST(controllerName+"/import", importData)

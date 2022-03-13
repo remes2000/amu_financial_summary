@@ -1,0 +1,55 @@
+<div class="card">
+  <div class="card-body">
+    <h2 class="card-title">{{ report.month }}/{{ report.year }}</h2>
+    <div class="row">
+      <div class="col-lg-4">
+        <table>
+          <tr *ngFor="let detail of report.details">
+            <td class="pr-4 pt-2">{{ detail.category }}</td>
+            <td class="pt-2">{{ detail.amount | currency }}</td>
+          </tr>
+        </table>
+      </div>
+      <div class="col-lg-8" *ngIf="+report.total != 0">
+        <div class="row">
+          <div class="col-lg-12">
+            <div>
+              <canvas baseChart
+                      [options]="pieChartOptions"
+                      [data]="pieChartData"
+                      [labels]="chartLabels"
+                      chartType="pie">
+              </canvas>
+            </div>
+          </div>
+        </div>
+        <div class="row mt-5">
+          <div class="col-lg-12">
+            <div>
+              <canvas baseChart
+                      [datasets]="barChartData"
+                      [labels]="chartLabels"
+                      chartType="bar">
+              </canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="card-footer text-muted">
+    <table>
+      <tr>
+        <td class="pr-2">INCOME</td>
+        <td>{{ report.totalIncome | currency }}</td>
+      </tr>
+      <tr>
+        <td class="pr-2">OUTCOME</td>
+        <td>{{ report.totalOutcome | currency }}</td>
+      </tr>
+      <tr>
+        <td class="pr-2 pt-2">TOTAL</td>
+        <td class="pt-2 total">{{ report.total | currency }}</td>
+      </tr>
+    </table>
+</div>

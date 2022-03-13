@@ -14,6 +14,7 @@ import (
 	"github.com/remes2000/amu_financial_summary/validators"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"net/http"
 	"os"
 )
 
@@ -52,6 +53,7 @@ func initRestApi() *gin.Engine {
 	rest := gin.Default()
 	registerValidators()
 	bindAllRoutes(rest)
+	deployFrontend(rest)
 	return rest
 }
 
@@ -63,8 +65,26 @@ func registerValidators() {
 }
 
 func bindAllRoutes(rest *gin.Engine) {
-	category.BindRoutes(rest)
-	account_transaction.BindRoutes(rest)
-	report.BindRoutes(rest)
-	backup.BindRoutes(rest)
+	api := rest.Group(os.Getenv("ROUTE_PREFIX"))
+	api.Use(authRequired)
+	category.BindRoutes(api)
+	account_transaction.BindRoutes(api)
+	report.BindRoutes(api)
+	backup.BindRoutes(api)
+}
+
+func authRequired(c *gin.Context) {
+	providedApiKey := c.GetHeader("Authorization")
+	if providedApiKey != os.Getenv("API_KEY") {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+	c.Next()
+}
+
+func deployFrontend(rest *gin.Engine) {
+	rest.NoRoute(func(c *gin.Context) {
+		c.File(os.Getenv("APP_PATH") + "/index.html")
+	})
+	rest.Static("/app", os.Getenv("APP_PATH"))
 }

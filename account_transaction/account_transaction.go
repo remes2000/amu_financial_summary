@@ -91,8 +91,13 @@ func (r AccountTransactionRequest) GetAccountTransaction(categories []category.C
 }
 
 type ForceSetCategoryRequest struct {
-	TransactionId uint `json:"transactionId" binding:"required"`
-	CategoryId    uint `json:"categoryId" binding:"required"`
+	TransactionId uint  `json:"transactionId" binding:"required"`
+	CategoryId    *uint `json:"categoryId"`
+}
+
+type GetTransactionsInMonthUri struct {
+	Year  uint `uri:"year" binding:"required"`
+	Month uint `uri:"month" binding:"required"`
 }
 
 func ImportTransactions(transactionsToImport []AccountTransactionRequest) ([]uint, error) {
@@ -141,14 +146,28 @@ func GetAccountTransactionById(transaction *AccountTransaction, id uint) error {
 }
 
 func ForceSetCategory(transaction *AccountTransaction, category *category.Category) error {
-	if err := global.Database.Model(transaction).Update("category_id", category.Id).Error; err != nil {
+	var categoryId *uint = nil
+	if category.Id == 0 {
+		transaction.Category = nil
+	} else {
+		transaction.Category = category
+		categoryId = &category.Id
+	}
+	if err := global.Database.Model(transaction).Updates(map[string]interface{}{"category_id": categoryId}).Error; err != nil {
 		return err
 	}
 	return nil
 }
 
 func GetAccountTransactionsByYearAndMonth(year uint, month uint, transactions *[]AccountTransaction) error {
-	if err := global.Database.Where("extract(year from date) = ? and extract(month from date) = ?", year, month).Preload("Category").Find(transactions).Error; err != nil {
+	if err := global.Database.Where("extract(year from date) = ? and extract(month from date) = ?", year, month).Preload("Category").Order("id desc").Find(transactions).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func DeleteAccountTransaction(transaction *AccountTransaction) error {
+	if err := global.Database.Delete(transaction).Error; err != nil {
 		return err
 	}
 	return nil
@@ -156,11 +175,13 @@ func GetAccountTransactionsByYearAndMonth(year uint, month uint, transactions *[
 
 // ---=== REST ===---
 
-func BindRoutes(rest *gin.Engine) {
+func BindRoutes(rest *gin.RouterGroup) {
 	controllerName := "account-transaction"
 	rest.POST(controllerName, importTransactions)
 	rest.GET(controllerName+"/:id", getOne)
+	rest.DELETE(controllerName+"/:id", delete)
 	rest.POST(controllerName+"/force-set-category", forceSetCategory)
+	rest.GET(controllerName+"/get-all/:month/:year", getAllTransactionsInMonth)
 }
 
 func importTransactions(context *gin.Context) {
@@ -206,6 +227,7 @@ func forceSetCategory(context *gin.Context) {
 	var requestedCategory category.Category
 
 	if err := context.ShouldBindJSON(&forceSetCategoryRequest); err != nil {
+		context.Status(http.StatusBadRequest)
 		return
 	}
 	if err := GetAccountTransactionById(&transaction, forceSetCategoryRequest.TransactionId); err != nil {
@@ -217,14 +239,16 @@ func forceSetCategory(context *gin.Context) {
 		context.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
-	if err := category.GetCategoryById(&requestedCategory, forceSetCategoryRequest.CategoryId); err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			context.JSON(http.StatusNotFound, gin.H{"message": fmt.Sprintf("Category with id %d does not exist", forceSetCategoryRequest.CategoryId)})
+	if forceSetCategoryRequest.CategoryId != nil {
+		if err := category.GetCategoryById(&requestedCategory, *forceSetCategoryRequest.CategoryId); err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				context.JSON(http.StatusNotFound, gin.H{"message": fmt.Sprintf("Category with id %d does not exist", forceSetCategoryRequest.CategoryId)})
+				return
+			}
+			log.Print(err)
+			context.AbortWithStatus(http.StatusInternalServerError)
 			return
 		}
-		log.Print(err)
-		context.AbortWithStatus(http.StatusInternalServerError)
-		return
 	}
 	if err := ForceSetCategory(&transaction, &requestedCategory); err != nil {
 		log.Print(err)
@@ -237,4 +261,45 @@ func forceSetCategory(context *gin.Context) {
 		return
 	}
 	context.JSON(http.StatusOK, transaction)
+}
+
+func getAllTransactionsInMonth(context *gin.Context) {
+	var transactionsInMonthUri GetTransactionsInMonthUri
+
+	if err := context.ShouldBindUri(&transactionsInMonthUri); err != nil {
+		context.Status(http.StatusBadRequest)
+		return
+	}
+	var transactions []AccountTransaction
+	if err := GetAccountTransactionsByYearAndMonth(transactionsInMonthUri.Year, transactionsInMonthUri.Month, &transactions); err != nil {
+		log.Print(err)
+		context.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	context.JSON(http.StatusOK, transactions)
+}
+
+func delete(context *gin.Context) {
+	var requestedTransaction AccountTransaction
+	var idUri common.IdUri
+
+	if err := context.ShouldBindUri(&idUri); err != nil {
+		context.Status(http.StatusBadRequest)
+		return
+	}
+	if err := GetAccountTransactionById(&requestedTransaction, idUri.Id); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			context.JSON(http.StatusNotFound, gin.H{"message": fmt.Sprintf("Cannot find entity with id %d", idUri.Id)})
+			return
+		}
+		log.Print(err)
+		context.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	if err := DeleteAccountTransaction(&requestedTransaction); err != nil {
+		log.Print(err)
+		context.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	context.Status(http.StatusOK)
 }

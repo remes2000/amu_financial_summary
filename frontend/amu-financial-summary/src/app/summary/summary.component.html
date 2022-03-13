@@ -1,0 +1,33 @@
+<div class="row">
+  <div class="col-lg-6">
+    <div class="form-group">
+      <label for="year">year</label>
+      <input id="year" type="number" class="form-control" [(ngModel)]="year" />
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="form-group">
+      <label for="month">month</label>
+      <input id="month" type="number" class="form-control" [(ngModel)]="month" />
+    </div>
+  </div>
+</div>
+<div class="row">
+  <div class="col-lg-12 text-right">
+    <button class="btn btn-primary" (click)="generateReport()">
+      Generate
+    </button>
+  </div>
+</div>
+<div class="row mt-3">
+  <div class="col-lg-12">
+    <div>{{ message }}</div>
+    <app-summary-card *ngIf="report" [report]="report"></app-summary-card>
+  </div>
+</div>
+<div class="row mt-3" *ngIf="transactions">
+  <div class="col-lg-12">
+    <app-transactions-table [transactions]="transactions" [categories]="categories"></app-transactions-table>
+  </div>
+</div>
+

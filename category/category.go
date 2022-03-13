@@ -43,7 +43,7 @@ func (cb *CategoryBackup) FromCategory(category Category) {
 
 type CreateCategory struct {
 	Name    string                `json:"name" binding:"required"`
-	Regexps []regexp.CreateRegexp `json:"regexps" binding:"required,dive"`
+	Regexps []regexp.CreateRegexp `json:"regexps" binding:"dive"`
 }
 
 func (c CreateCategory) GetCategory() Category {
@@ -55,7 +55,7 @@ func (c CreateCategory) GetCategory() Category {
 }
 
 func GetAllCategories(categories *[]Category) error {
-	if err := global.Database.Preload("Regexps").Find(categories).Error; err != nil {
+	if err := global.Database.Preload("Regexps").Order("id desc").Find(categories).Error; err != nil {
 		return err
 	}
 	return nil
@@ -91,14 +91,22 @@ func UpdateCategory(categoryToUpdate *Category, updateCategory *Category) error 
 	})
 }
 
+func DeleteCategory(category *Category) error {
+	if err := global.Database.Delete(category).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
 // ---=== REST ===---
 
-func BindRoutes(rest *gin.Engine) {
+func BindRoutes(rest *gin.RouterGroup) {
 	controllerName := "category"
 	rest.GET(controllerName, getAll)
 	rest.GET(controllerName+"/:id", getOne)
 	rest.POST(controllerName, create)
 	rest.PUT(controllerName, update)
+	rest.DELETE(controllerName+"/:id", delete)
 }
 
 func getAll(context *gin.Context) {
@@ -166,4 +174,29 @@ func update(context *gin.Context) {
 		return
 	}
 	context.JSON(http.StatusOK, updateCategory)
+}
+
+func delete(context *gin.Context) {
+	var requestedCategory Category
+	var idUri common.IdUri
+
+	if err := context.ShouldBindUri(&idUri); err != nil {
+		context.Status(http.StatusBadRequest)
+		return
+	}
+	if err := GetCategoryById(&requestedCategory, idUri.Id); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			context.JSON(http.StatusNotFound, gin.H{"message": fmt.Sprintf("Cannot find entity with id %d", idUri.Id)})
+			return
+		}
+		log.Print(err)
+		context.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	if err := DeleteCategory(&requestedCategory); err != nil {
+		log.Print(err)
+		context.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	context.Status(http.StatusOK)
 }

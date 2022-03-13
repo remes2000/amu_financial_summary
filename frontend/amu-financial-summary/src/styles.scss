@@ -1,0 +1,29 @@
+/* You can add global styles to this file, and also import other style files */
+
+/* Importing Bootstrap SCSS file. */
+@import '~bootstrap/scss/bootstrap';
+
+.password-prompt {
+  width: 350px;
+  position: fixed;
+  top: 50px;
+  left: 0;
+  right: 0;
+  margin: 0 auto;
+  background-color: white;
+  border: 1px solid gray;
+  padding: 25px;
+  border-radius: 7px;
+  z-index: 1051;
+}
+
+.prompt-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  background-color: black;
+  opacity: 0.1;
+  width: 100%;
+  height: 100%;
+  z-index: 1050;
+}

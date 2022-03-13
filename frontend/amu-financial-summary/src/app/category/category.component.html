@@ -1,0 +1,18 @@
+<app-loader *ngIf="isLoading"></app-loader>
+<ng-container *ngIf="!isLoading">
+  <div class="row">
+    <div class="col-lg-12">
+      <h1>Categories</h1>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-lg-12">
+      <button class="btn btn-success" (click)="addNew()">Add new</button>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-lg-12">
+      <app-category-card *ngFor="let category of categories" [category]="category" (removeCategory)="remove($event)"></app-category-card>
+    </div>
+  </div>
+</ng-container>

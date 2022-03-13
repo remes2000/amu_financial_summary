@@ -1,0 +1,37 @@
+<table class="table table-bordered">
+  <thead>
+  <tr>
+    <th>Id</th>
+    <th>Title</th>
+    <th>Day</th>
+    <th>Amount</th>
+    <th>Category</th>
+    <th></th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr *ngFor="let transaction of transactions">
+    <td>{{ transaction.id }}</td>
+    <td>{{ transaction.title }}</td>
+    <td>{{ transaction.date | date : 'dd'}}</td>
+    <td>{{ (transaction.amount / 100) | currency }}</td>
+    <td>
+      <select [(ngModel)]="transaction.category">
+        <option [ngValue]="null">-</option>
+        <option *ngFor="let category of categories" [ngValue]="category">
+          {{ category.name }}
+        </option>
+      </select>
+      {{ message[transaction.id] }}
+    </td>
+    <td>
+      <div class="text-center">
+        <button class="btn btn-success" (click)="save(transaction)">Save</button>
+      </div>
+      <div class="text-center mt-2">
+        <button class="btn btn-danger" (click)="remove(transaction)">Remove</button>
+      </div>
+    </td>
+  </tr>
+  </tbody>
+</table>

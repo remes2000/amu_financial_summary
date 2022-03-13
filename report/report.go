@@ -80,7 +80,7 @@ func GenerateReport(year uint, month uint) (Report, error) {
 
 // ---=== REST ===---
 
-func BindRoutes(rest *gin.Engine) {
+func BindRoutes(rest *gin.RouterGroup) {
 	controllerName := "report"
 	rest.GET(controllerName+"/:month/:year", generateReport)
 }

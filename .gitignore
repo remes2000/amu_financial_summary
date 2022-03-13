@@ -1,5 +1,5 @@
 .idea/
 .env
 .env_test
-santander-to-json/input/
-santander-to-json/output.json
+frontend/dist
+dist/
